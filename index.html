@@ -4,47 +4,34 @@
 <meta charset="UTF-8">
 <title>スター検索</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <link rel="icon" href="https://cdn-icons-png.freepik.com/256/18716/18716170.png?semt=ais_white_label" sizes="16×16" type="image/png" />  
+<link rel="icon" href="https://cdn-icons-png.freepik.com/256/18716/18716170.png?semt=ais_white_label" sizes="16×16" type="image/png" />
 <style>
-:root{
-  --bg:#0f172a; --card:#020617; --text:#fff; --accent:#22c55e;
-}
-.light{
-  --bg:#f1f5f9; --card:#fff; --text:#020617; --accent:#2563eb;
-}
-body{
-  margin:0;font-family:system-ui,sans-serif;
-  background:var(--bg);color:var(--text);
-}
-.container{
-  max-width:560px;margin:24px auto;padding:20px;
-  background:var(--card);border-radius:14px;
-}
-input,select,button{
-  width:100%;padding:12px;margin-top:10px;
-  border:none;border-radius:8px;font-size:15px;
-}
+:root{--bg:#0f172a;--card:#020617;--text:#fff;--accent:#22c55e}
+.light{--bg:#f1f5f9;--card:#fff;--text:#020617;--accent:#2563eb}
+body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
+.container{max-width:560px;margin:24px auto;padding:20px;background:var(--card);border-radius:14px}
+input,select,button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:8px}
 button{cursor:pointer}
-.search{background:var(--accent);color:#fff;}
-.mode{background:#64748b;color:#fff;}
-.warn{background:#ef4444;color:#fff;}
-.theme{background:#a855f7;color:#fff;}
-.history{display:none;margin-top:18px;}
-.item{
-  background:rgba(0,0,0,.2);
-  padding:10px;border-radius:8px;margin-bottom:8px;
-}
-.time{font-size:12px;opacity:.7;}
-.status{text-align:center;margin-top:10px;}
-.timer{text-align:center;font-size:13px;opacity:.8;}
-   footer {
+.search{background:var(--accent);color:#fff}
+.mode{background:#64748b;color:#fff}
+.warn{background:#ef4444;color:#fff}
+.theme{background:#a855f7;color:#fff}
+.history{display:none;margin-top:16px}
+.item{background:rgba(0,0,0,.2);padding:10px;border-radius:8px;margin-bottom:8px}
+.time{font-size:12px;opacity:.7}
+.del{background:#ef4444;color:#fff;padding:6px}
+.status,.timer{text-align:center;margin-top:10px}
+#passModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center}
+#passBox{background:#020617;padding:20px;border-radius:12px;width:90%;max-width:320px}
+.eye{margin-top:6px;background:#334155;color:#fff}
+footer {
            padding: 30px;
            text-align: center;
            font-size: 0.85rem;
            color: rgba(255,255,255,0.5);
            border-top: 1px solid rgba(255,255,255,0.1);
            margin-top: 60px;
-   }
+       }
 </style>
 </head>
 <body>
@@ -53,10 +40,10 @@ button{cursor:pointer}
 <h1>スター検索</h1>
 
 <select id="engine">
-  <option value="google">Google</option>
-  <option value="yahoo">Yahoo! JAPAN</option>
-  <option value="bing">Bing</option>
-  <option value="duck">DuckDuckGo</option>
+<option value="google">Google</option>
+<option value="yahoo">Yahoo! JAPAN</option>
+<option value="bing">Bing</option>
+<option value="duck">DuckDuckGo</option>
 </select>
 
 <input id="q" placeholder="検索内容を入力">
@@ -64,153 +51,234 @@ button{cursor:pointer}
 
 <hr>
 
-<button class="mode" onclick="adminLogin()">管理者モード切替</button>
-<button class="warn" onclick="forgotPassword()">パスワードがわからない場合</button>
-<button class="theme" onclick="toggleTheme()">ダーク / ライト切替</button>
+<button class="mode" onclick="adminLogin()">管理者モード</button>
+<button class="warn" onclick="forgotPassword()">パスワードを忘れた場合</button>
+<button class="theme" onclick="toggleTheme()">ダーク / ライト</button>
 
 <div class="status" id="status">通常モード</div>
 <div class="timer" id="timer"></div>
 
 <div class="history" id="historyBox">
-  <h3>検索履歴（管理者）</h3>
-  <div id="history"></div>
-  <button class="warn" onclick="logoutAdmin()">管理者ログアウト</button>
+<h3>検索履歴（管理者）</h3>
+<div id="history"></div>
+<button class="mode" onclick="extendAdmin()">⏱ 延長（再認証）</button>
+<button class="warn" onclick="clearHistory()">履歴全削除</button>
+<button class="mode" onclick="changePassword()">パスワード変更</button>
+<button class="warn" onclick="logoutAdmin()">ログアウト</button>
 </div>
 </div>
-   <footer>
-       © 2025 STAR TOOLS - All Rights Reserved.
+
+<div id="passModal">
+<div id="passBox">
+<h3 id="passTitle"></h3>
+<input id="passInput" type="password">
+<button class="eye" onclick="toggleEye()">👁 表示/非表示</button>
+<button class="mode" onclick="passOk()">OK</button>
+<button class="warn" onclick="passCancel()">キャンセル</button>
+</div>
+</div>
+<footer>
+       © 2025 STAR CORPORATION - All Rights Reserved.
    </footer>
-
-
 <script>
-/* ===== Keys ===== */
 const HISTORY_KEY="searchHistory";
 const PASS_KEY="adminPassHash";
-const RESET_KEY="resetExpire";
-const THEME_KEY="theme";
+const PASS_PLAIN_KEY="adminPassPlain";
+const ADMIN_KEY="adminExpire";
+const FAIL_KEY="failCount";
+const LOCK_KEY="lockUntil";
+const RESET_WAIT_KEY="resetWaitUntil";
+const RECOVERY_PASSWORD="appleQer!";
 
-/* ===== State ===== */
-let admin=false;
-let tick=null;
+let admin=false,timerInt=null,resolvePass=null;
 
-/* ===== Search ===== */
+/* 初期化 */
+window.onload=()=>{
+  localStorage.removeItem(ADMIN_KEY);
+  logoutAdmin();
+};
+
+/* 検索 */
 function search(){
-  const q=document.getElementById("q").value.trim();
-  if(!q) return;
-
+  const input=q;
+  const text=input.value.trim();
+  if(!text)return;
   const map={
     google:"https://www.google.com/search?q=",
     yahoo:"https://search.yahoo.co.jp/search?p=",
     bing:"https://www.bing.com/search?q=",
     duck:"https://duckduckgo.com/?q="
   };
-
-  const data=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
-  data.unshift({text:q,time:new Date().toLocaleString()});
-  localStorage.setItem(HISTORY_KEY,JSON.stringify(data));
-
-  window.open(map[engine.value]+encodeURIComponent(q),"_blank");
-  q.value="";
-  render();
+  const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
+  h.unshift({text,time:new Date().toLocaleString()});
+  localStorage.setItem(HISTORY_KEY,JSON.stringify(h));
+  window.open(map[engine.value]+encodeURIComponent(text),"_blank");
+  input.value="";
 }
 
-/* ===== Admin Login ===== */
+/* モーダル */
+function askPassword(title){
+  return new Promise(r=>{
+    resolvePass=r;
+    passTitle.textContent=title;
+    passInput.value="";
+    passInput.type="password";
+    passModal.style.display="flex";
+  });
+}
+function passOk(){passModal.style.display="none";resolvePass(passInput.value)}
+function passCancel(){passModal.style.display="none";resolvePass(null)}
+function toggleEye(){passInput.type=passInput.type==="password"?"text":"password"}
+
+/* 管理者ログイン */
 async function adminLogin(){
+  if(+localStorage.getItem(RESET_WAIT_KEY) > Date.now()){
+    alert("パスワードリセット待機中です");
+    return;
+  }
+
+  const lockUntil=+localStorage.getItem(LOCK_KEY)||0;
+  if(lockUntil>Date.now()){
+    alert("ロック中です");
+    return;
+  }
+
   const saved=localStorage.getItem(PASS_KEY);
-
   if(!saved){
-    const p=prompt("管理者パスワードを設定");
-    if(!p) return;
+    const p=await askPassword("新しい管理者パスワード");
+    if(!p)return;
     localStorage.setItem(PASS_KEY,await hash(p));
-    alert("設定しました");
+    localStorage.setItem(PASS_PLAIN_KEY,p);
+    alert("設定完了");
     return;
   }
 
-  const input=prompt("管理者パスワード");
-  if(await hash(input)!==saved){
-    alert("パスワードが違います");
+  const p=await askPassword("管理者パスワード");
+  if(!p)return;
+
+  if(await hash(p)!==saved){
+    let f=(+localStorage.getItem(FAIL_KEY)||0)+1;
+    localStorage.setItem(FAIL_KEY,f);
+    if(f>=3){
+      localStorage.setItem(LOCK_KEY,Date.now()+2*60*1000);
+      localStorage.removeItem(FAIL_KEY);
+      alert("3回失敗 → 2分ロック");
+    }
     return;
   }
-  enableAdmin();
+
+  localStorage.removeItem(FAIL_KEY);
+  enableAdmin(Date.now()+10*60*1000);
 }
 
-/* ===== Enable / Disable ===== */
-function enableAdmin(){
+/* 管理者 */
+function enableAdmin(exp){
   admin=true;
-  document.getElementById("historyBox").style.display="block";
-  document.getElementById("status").textContent="管理者モード";
+  localStorage.setItem(ADMIN_KEY,exp);
+  historyBox.style.display="block";
+  status.textContent="管理者モード";
   render();
+  startTimer();
 }
+
 function logoutAdmin(){
   admin=false;
-  document.getElementById("historyBox").style.display="none";
-  document.getElementById("status").textContent="通常モード";
+  localStorage.removeItem(ADMIN_KEY);
+  historyBox.style.display="none";
+  status.textContent="通常モード";
+  timer.textContent="";
 }
 
-/* ===== Forgot Password (5分) ===== */
-function forgotPassword(){
-  if(localStorage.getItem(RESET_KEY)){
-    alert("すでに待機中です");
+/* 延長 */
+async function extendAdmin(){
+  const p=await askPassword("再認証");
+  if(!p)return;
+  if(await hash(p)!==localStorage.getItem(PASS_KEY)){
+    alert("失敗");
     return;
   }
-  const expire=Date.now()+5*60*1000;
-  localStorage.setItem(RESET_KEY,expire);
-  startResetTimer();
+  enableAdmin(Date.now()+10*60*1000);
 }
 
-function startResetTimer(){
-  clearInterval(tick);
-  tick=setInterval(()=>{
-    const exp=Number(localStorage.getItem(RESET_KEY));
-    const left=exp-Date.now();
-    if(left<=0){
-      clearInterval(tick);
-      localStorage.removeItem(PASS_KEY);
-      localStorage.removeItem(RESET_KEY);
-      document.getElementById("timer").textContent="";
-      alert("パスワードがリセットされました。再設定してください。");
-      return;
+/* 履歴 */
+function render(){
+  if(!admin)return;
+  history.innerHTML="";
+  const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
+  h.forEach((d,i)=>{
+    history.innerHTML+=`
+    <div class="item">
+      ${d.text}
+      <div class="time">${d.time}</div>
+      <button class="del" onclick="removeItem(${i})">削除</button>
+    </div>`;
+  });
+}
+function removeItem(i){
+  const h=JSON.parse(localStorage.getItem(HISTORY_KEY));
+  h.splice(i,1);
+  localStorage.setItem(HISTORY_KEY,JSON.stringify(h));
+  render();
+}
+function clearHistory(){
+  if(confirm("全削除しますか？")){
+    localStorage.removeItem(HISTORY_KEY);
+    render();
+  }
+}
+
+/* 忘れた場合 */
+async function forgotPassword(){
+  const choice=confirm(
+    "OK：特別パスワードで確認\nキャンセル：5分待ってリセット"
+  );
+
+  /* 特別パスワード */
+  if(choice){
+    const p=await askPassword("特別回復パスワード");
+    if(p===RECOVERY_PASSWORD){
+      alert("現在のパスワード：\n"+(localStorage.getItem(PASS_PLAIN_KEY)||"未設定"));
+    }else{
+      alert("違います");
     }
-    const m=Math.floor(left/60000);
-    const s=Math.floor((left%60000)/1000);
-    document.getElementById("timer").textContent=
-      `パスワードリセットまで ${m}:${s.toString().padStart(2,"0")}`;
+    return;
+  }
+
+  /* 5分待ちリセット */
+  localStorage.setItem(RESET_WAIT_KEY,Date.now()+5*60*1000);
+  alert("5分後に管理者ログインで新しいパスワードを設定できます");
+}
+
+/* パスワード変更 */
+async function changePassword(){
+  const p=await askPassword("新しいパスワード");
+  if(!p)return;
+  localStorage.setItem(PASS_KEY,await hash(p));
+  localStorage.setItem(PASS_PLAIN_KEY,p);
+  alert("変更完了");
+}
+
+/* タイマー */
+function startTimer(){
+  clearInterval(timerInt);
+  timerInt=setInterval(()=>{
+    const left=+localStorage.getItem(ADMIN_KEY)-Date.now();
+    if(left<=0){logoutAdmin();return;}
+    timer.textContent=`残り ${Math.ceil(left/60000)} 分`;
   },1000);
 }
 
-/* ===== History ===== */
-function render(){
-  if(!admin) return;
-  const box=document.getElementById("history");
-  box.innerHTML="";
-  const data=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
-  data.forEach(d=>{
-    box.innerHTML+=`
-      <div class="item">
-        <div>${d.text}</div>
-        <div class="time">${d.time}</div>
-      </div>`;
-  });
-}
+/* テーマ */
+function toggleTheme(){document.body.classList.toggle("light")}
 
-/* ===== Theme ===== */
-function toggleTheme(){
-  document.body.classList.toggle("light");
-  localStorage.setItem(THEME_KEY,
-    document.body.classList.contains("light")?"light":"dark");
-}
-
-/* ===== Hash ===== */
 async function hash(t){
   const b=new TextEncoder().encode(t);
   const d=await crypto.subtle.digest("SHA-256",b);
   return [...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,"0")).join("");
 }
 
-/* ===== Restore Reset Timer ===== */
-if(localStorage.getItem(RESET_KEY)){
-  startResetTimer();
-}
+/* タブ閉じ */
+window.addEventListener("beforeunload",()=>localStorage.removeItem(ADMIN_KEY));
 </script>
 
 </body>
