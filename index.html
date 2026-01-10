@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>スター検索</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="icon" href="https://cdn-icons-png.freepik.com/256/18716/18716170.png?semt=ais_white_label" sizes="16×16" type="image/png" /> 
+ <link rel="icon" href="https://cdn-icons-png.freepik.com/256/18716/18716170.png?semt=ais_white_label" sizes="16×16" type="image/png" />  
 <style>
 :root{
   --bg:#0f172a; --card:#020617; --text:#fff; --accent:#22c55e;
@@ -13,43 +13,38 @@
   --bg:#f1f5f9; --card:#fff; --text:#020617; --accent:#2563eb;
 }
 body{
-  margin:0; font-family:system-ui,sans-serif;
-  background:var(--bg); color:var(--text);
+  margin:0;font-family:system-ui,sans-serif;
+  background:var(--bg);color:var(--text);
 }
 .container{
-  max-width:560px; margin:24px auto; padding:20px;
-  background:var(--card); border-radius:14px;
-  box-shadow:0 10px 30px rgba(0,0,0,.3);
+  max-width:560px;margin:24px auto;padding:20px;
+  background:var(--card);border-radius:14px;
 }
-h1{text-align:center;}
 input,select,button{
-  width:100%; padding:12px; margin-top:10px;
-  border:none; border-radius:8px; font-size:15px;
+  width:100%;padding:12px;margin-top:10px;
+  border:none;border-radius:8px;font-size:15px;
 }
 button{cursor:pointer}
-.search{background:var(--accent); color:#fff;}
-.mode{background:#64748b; color:#fff;}
-.theme{background:#a855f7; color:#fff;}
-.warn{background:#ef4444; color:#fff;}
-.history{display:none; margin-top:18px;}
+.search{background:var(--accent);color:#fff;}
+.mode{background:#64748b;color:#fff;}
+.warn{background:#ef4444;color:#fff;}
+.theme{background:#a855f7;color:#fff;}
+.history{display:none;margin-top:18px;}
 .item{
-  background:rgba(0,0,0,.2); padding:10px;
-  border-radius:8px; margin-bottom:8px;
+  background:rgba(0,0,0,.2);
+  padding:10px;border-radius:8px;margin-bottom:8px;
 }
-.time{font-size:12px; opacity:.7;}
-.del{background:#ef4444; color:#fff; padding:6px;}
-.status{text-align:center; margin-top:10px; font-size:14px;}
-.timer{text-align:center; font-size:13px; opacity:.85;}
-hr{border:none; height:1px; background:rgba(255,255,255,.15); margin:14px 0;}
-footer {
+.time{font-size:12px;opacity:.7;}
+.status{text-align:center;margin-top:10px;}
+.timer{text-align:center;font-size:13px;opacity:.8;}
+   footer {
            padding: 30px;
            text-align: center;
            font-size: 0.85rem;
            color: rgba(255,255,255,0.5);
            border-top: 1px solid rgba(255,255,255,0.1);
            margin-top: 60px;
-       }
-
+   }
 </style>
 </head>
 <body>
@@ -57,7 +52,7 @@ footer {
 <div class="container">
 <h1>スター検索</h1>
 
-<select id="engine" onchange="saveEngine()">
+<select id="engine">
   <option value="google">Google</option>
   <option value="yahoo">Yahoo! JAPAN</option>
   <option value="bing">Bing</option>
@@ -70,6 +65,7 @@ footer {
 <hr>
 
 <button class="mode" onclick="adminLogin()">管理者モード切替</button>
+<button class="warn" onclick="forgotPassword()">パスワードがわからない場合</button>
 <button class="theme" onclick="toggleTheme()">ダーク / ライト切替</button>
 
 <div class="status" id="status">通常モード</div>
@@ -78,47 +74,24 @@ footer {
 <div class="history" id="historyBox">
   <h3>検索履歴（管理者）</h3>
   <div id="history"></div>
-
-  <hr>
-  <button class="mode" onclick="changePassword()">パスワード変更</button>
   <button class="warn" onclick="logoutAdmin()">管理者ログアウト</button>
-  <button class="warn" onclick="resetPassword()">パスワードリセット</button>
 </div>
 </div>
-
-
-<footer>
+   <footer>
        © 2025 STAR TOOLS - All Rights Reserved.
    </footer>
+
 
 <script>
 /* ===== Keys ===== */
 const HISTORY_KEY="searchHistory";
-const THEME_KEY="theme";
 const PASS_KEY="adminPassHash";
-const ADMIN_TIME_KEY="adminExpire";
-const ENGINE_KEY="searchEngine";
+const RESET_KEY="resetExpire";
+const THEME_KEY="theme";
 
 /* ===== State ===== */
 let admin=false;
 let tick=null;
-
-/* ===== Load Theme ===== */
-if(localStorage.getItem(THEME_KEY)==="light"){
-  document.body.classList.add("light");
-}
-
-/* ===== Load Engine ===== */
-const savedEngine=localStorage.getItem(ENGINE_KEY);
-if(savedEngine){
-  document.getElementById("engine").value=savedEngine;
-}
-
-/* ===== Restore Admin (if time left) ===== */
-const exp=Number(localStorage.getItem(ADMIN_TIME_KEY)||0);
-if(exp>Date.now()){
-  enableAdmin(exp);
-}
 
 /* ===== Search ===== */
 function search(){
@@ -136,15 +109,9 @@ function search(){
   data.unshift({text:q,time:new Date().toLocaleString()});
   localStorage.setItem(HISTORY_KEY,JSON.stringify(data));
 
-  const eng=document.getElementById("engine").value;
-  window.open(map[eng]+encodeURIComponent(q),"_blank");
-  document.getElementById("q").value="";
+  window.open(map[engine.value]+encodeURIComponent(q),"_blank");
+  q.value="";
   render();
-}
-
-/* ===== Engine Save ===== */
-function saveEngine(){
-  localStorage.setItem(ENGINE_KEY, document.getElementById("engine").value);
 }
 
 /* ===== Admin Login ===== */
@@ -152,60 +119,62 @@ async function adminLogin(){
   const saved=localStorage.getItem(PASS_KEY);
 
   if(!saved){
-    const p1=prompt("管理者パスワードを設定");
-    if(!p1) return;
-    const p2=prompt("もう一度入力");
-    if(p1!==p2){ alert("一致しません"); return; }
-    localStorage.setItem(PASS_KEY, await hash(p1));
-    alert("管理者パスワードを設定しました");
+    const p=prompt("管理者パスワードを設定");
+    if(!p) return;
+    localStorage.setItem(PASS_KEY,await hash(p));
+    alert("設定しました");
     return;
   }
 
-  const input=prompt("管理者パスワードを入力");
-  if(!input) return;
-  if(await hash(input)!==saved){ alert("パスワードが違います"); return; }
-
-  const expire=Date.now()+10*60*1000;
-  enableAdmin(expire);
+  const input=prompt("管理者パスワード");
+  if(await hash(input)!==saved){
+    alert("パスワードが違います");
+    return;
+  }
+  enableAdmin();
 }
 
-/* ===== Enable / Disable Admin ===== */
-function enableAdmin(expire){
+/* ===== Enable / Disable ===== */
+function enableAdmin(){
   admin=true;
-  localStorage.setItem(ADMIN_TIME_KEY, expire);
   document.getElementById("historyBox").style.display="block";
   document.getElementById("status").textContent="管理者モード";
-  startCountdown();
   render();
 }
-
 function logoutAdmin(){
-  disableAdmin();
-}
-
-function disableAdmin(){
   admin=false;
-  localStorage.removeItem(ADMIN_TIME_KEY);
-  clearInterval(tick);
   document.getElementById("historyBox").style.display="none";
   document.getElementById("status").textContent="通常モード";
-  document.getElementById("timer").textContent="";
 }
 
-/* ===== Countdown ===== */
-function startCountdown(){
+/* ===== Forgot Password (5分) ===== */
+function forgotPassword(){
+  if(localStorage.getItem(RESET_KEY)){
+    alert("すでに待機中です");
+    return;
+  }
+  const expire=Date.now()+5*60*1000;
+  localStorage.setItem(RESET_KEY,expire);
+  startResetTimer();
+}
+
+function startResetTimer(){
   clearInterval(tick);
   tick=setInterval(()=>{
-    const exp=Number(localStorage.getItem(ADMIN_TIME_KEY)||0);
+    const exp=Number(localStorage.getItem(RESET_KEY));
     const left=exp-Date.now();
     if(left<=0){
-      disableAdmin();
+      clearInterval(tick);
+      localStorage.removeItem(PASS_KEY);
+      localStorage.removeItem(RESET_KEY);
+      document.getElementById("timer").textContent="";
+      alert("パスワードがリセットされました。再設定してください。");
       return;
     }
     const m=Math.floor(left/60000);
     const s=Math.floor((left%60000)/1000);
     document.getElementById("timer").textContent=
-      `残り時間：${m}:${s.toString().padStart(2,"0")}`;
+      `パスワードリセットまで ${m}:${s.toString().padStart(2,"0")}`;
   },1000);
 }
 
@@ -215,50 +184,20 @@ function render(){
   const box=document.getElementById("history");
   box.innerHTML="";
   const data=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
-  data.forEach((d,i)=>{
+  data.forEach(d=>{
     box.innerHTML+=`
       <div class="item">
         <div>${d.text}</div>
         <div class="time">${d.time}</div>
-        <button class="del" onclick="removeItem(${i})">削除</button>
       </div>`;
   });
-}
-function removeItem(i){
-  const data=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
-  data.splice(i,1);
-  localStorage.setItem(HISTORY_KEY,JSON.stringify(data));
-  render();
-}
-
-/* ===== Password ===== */
-async function changePassword(){
-  const old=prompt("現在のパスワード");
-  if(!old) return;
-  if(await hash(old)!==localStorage.getItem(PASS_KEY)){
-    alert("パスワードが違います"); return;
-  }
-  const n1=prompt("新しいパスワード");
-  const n2=prompt("もう一度入力");
-  if(n1!==n2){ alert("一致しません"); return; }
-  localStorage.setItem(PASS_KEY, await hash(n1));
-  alert("変更しました");
-}
-function resetPassword(){
-  if(confirm("管理者パスワードを完全にリセットしますか？")){
-    localStorage.removeItem(PASS_KEY);
-    disableAdmin();
-    alert("リセット完了。次回は再設定が必要です。");
-  }
 }
 
 /* ===== Theme ===== */
 function toggleTheme(){
   document.body.classList.toggle("light");
-  localStorage.setItem(
-    THEME_KEY,
-    document.body.classList.contains("light")?"light":"dark"
-  );
+  localStorage.setItem(THEME_KEY,
+    document.body.classList.contains("light")?"light":"dark");
 }
 
 /* ===== Hash ===== */
@@ -266,6 +205,11 @@ async function hash(t){
   const b=new TextEncoder().encode(t);
   const d=await crypto.subtle.digest("SHA-256",b);
   return [...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,"0")).join("");
+}
+
+/* ===== Restore Reset Timer ===== */
+if(localStorage.getItem(RESET_KEY)){
+  startResetTimer();
 }
 </script>
 
