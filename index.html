@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>スター検索</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <link rel="icon" href="https://cdn-icons-png.freepik.com/256/18716/18716170.png?semt=ais_white_label" sizes="16×16" type="image/png" />   
+<style>
+:root{
+  --bg:#0f172a; --card:#020617; --text:#fff; --accent:#22c55e;
+}
+.light{
+  --bg:#f1f5f9; --card:#fff; --text:#020617; --accent:#2563eb;
+}
+body{
+  margin:0; font-family:system-ui,sans-serif;
+  background:var(--bg); color:var(--text);
+}
+.container{
+  max-width:520px; margin:24px auto; padding:20px;
+  background:var(--card); border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.3);
+}
+h1{text-align:center;}
+input,select,button{
+  width:100%; padding:12px; margin-top:10px;
+  border:none; border-radius:8px; font-size:15px;
+}
+button{cursor:pointer}
+.search{background:var(--accent); color:#fff;}
+.mode{background:#64748b; color:#fff;}
+.theme{background:#a855f7; color:#fff;}
+.history{display:none; margin-top:18px;}
+.item{
+  background:rgba(0,0,0,.2); padding:10px; border-radius:8px; margin-bottom:8px;
+}
+.time{font-size:12px; opacity:.7;}
+.del{background:#ef4444; color:#fff; padding:6px;}
+.status{text-align:center; margin-top:10px; font-size:14px;}
+hr{border:none; height:1px; background:rgba(255,255,255,.15); margin:14px 0;}
+footer {
+           padding: 30px;
+           text-align: center;
+           font-size: 0.85rem;
+           color: rgba(255,255,255,0.5);
+           border-top: 1px solid rgba(255,255,255,0.1);
+           margin-top: 60px;
+       }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>スター検索</h1>
+
+  <select id="engine">
+    <option value="google">Google</option>
+    <option value="bing">Bing</option>
+    <option value="duck">DuckDuckGo</option>
+  </select>
+
+  <input id="q" placeholder="検索内容を入力">
+  <button class="search" onclick="search()">検索</button>
+
+  <hr>
+
+  <button class="mode" onclick="adminAction()">管理者モード切替</button>
+  <button class="theme" onclick="toggleTheme()">ダーク / ライト切替</button>
+  <div class="status" id="status">通常モード</div>
+
+  <div class="history" id="historyBox">
+    <h3>検索履歴</h3>
+    <div id="history"></div>
+  </div>
+</div>
+
+<footer>
+       © 2025 STAR TOOLS - All Rights Reserved.
+   </footer>
+    
+<script>
+/* ===== keys ===== */
+const HISTORY_KEY="searchHistory";
+const THEME_KEY="theme";
+const PASS_KEY="adminPassHash";
+
+let admin=false;
+
+/* ===== theme load ===== */
+if(localStorage.getItem(THEME_KEY)==="light"){
+  document.body.classList.add("light");
+}
+
+/* ===== search ===== */
+function search(){
+  const q=document.getElementById("q").value.trim();
+  if(!q) return;
+
+  const engine=document.getElementById("engine").value;
+  const map={
+    google:"https://www.google.com/search?q=",
+    bing:"https://www.bing.com/search?q=",
+    duck:"https://duckduckgo.com/?q="
+  };
+
+  const data=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
+  data.unshift({ text:q, time:new Date().toLocaleString() });
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(data));
+
+  window.open(map[engine]+encodeURIComponent(q),"_blank");
+  document.getElementById("q").value="";
+  render();
+}
+
+/* ===== admin with password ===== */
+async function adminAction(){
+  const savedHash=localStorage.getItem(PASS_KEY);
+
+  // 初回：パスワード設定
+  if(!savedHash){
+    const p1=prompt("管理者パスワードを設定してください");
+    if(!p1) return;
+    const p2=prompt("もう一度入力してください");
+    if(p1!==p2){ alert("一致しません"); return; }
+    localStorage.setItem(PASS_KEY, await hash(p1));
+    alert("管理者パスワードを設定しました");
+    return;
+  }
+
+  // 認証
+  const input=prompt("管理者パスワードを入力");
+  if(!input) return;
+  const ok = (await hash(input)) === savedHash;
+  if(!ok){ alert("パスワードが違います"); return; }
+
+  admin=!admin;
+  document.getElementById("historyBox").style.display=admin?"block":"none";
+  document.getElementById("status").textContent=
+    admin?"管理者モード":"通常モード";
+  render();
+}
+
+/* ===== render history ===== */
+function render(){
+  if(!admin) return;
+  const box=document.getElementById("history");
+  box.innerHTML="";
+  const data=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
+  data.forEach((d,i)=>{
+    const div=document.createElement("div");
+    div.className="item";
+    div.innerHTML=`
+      <div>${d.text}</div>
+      <div class="time">${d.time}</div>
+      <button class="del" onclick="removeItem(${i})">削除</button>
+    `;
+    box.appendChild(div);
+  });
+}
+function removeItem(i){
+  const data=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");
+  data.splice(i,1);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(data));
+  render();
+}
+
+/* ===== theme ===== */
+function toggleTheme(){
+  document.body.classList.toggle("light");
+  localStorage.setItem(
+    THEME_KEY,
+    document.body.classList.contains("light")?"light":"dark"
+  );
+}
+
+/* ===== hash (SHA-256) ===== */
+async function hash(text){
+  const buf=new TextEncoder().encode(text);
+  const digest=await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(digest))
+    .map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+</script>
+
+</body>
+</html>
